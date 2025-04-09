@@ -16,7 +16,7 @@ const Block = sequelize.define('Block', {
   },
   fileId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true, 
     references: {
       model: 'Files',
       key: 'id'

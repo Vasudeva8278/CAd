@@ -1,4 +1,4 @@
-// main.tsx
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -14,7 +14,7 @@ import Button from '@mui/material/Button';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import './style.css';
 
-// Import components
+
 import Upload from './Component/Upload';
 import BlockList from './Component/BlockList';
 
