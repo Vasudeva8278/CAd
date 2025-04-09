@@ -1,4 +1,19 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
+import {
+  Box,
+  TextField,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Typography,
+  Paper,
+  CircularProgress,
+  Alert,
+  Divider
+} from '@mui/material';
+import { Visibility, Download } from '@mui/icons-material';
 
 interface Block {
   id: number;
@@ -7,35 +22,132 @@ interface Block {
   y: number;
 }
 
+interface BlockListState {
+  blocks: Block[];
+  loading: boolean;
+  error: string | null;
+  search: string;
+}
+
 const BlockList: React.FC = () => {
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [search, setSearch] = useState<string>('');
+  const [state, setState] = useState<BlockListState>({
+    blocks: [],
+    loading: false,
+    error: null,
+    search: ''
+  });
+
+  const fetchBlocks = async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const response = await fetch(`http://localhost:8001/api/files/blocks?name=${state.search}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch blocks');
+      }
+      const data = await response.json();
+      setState(prev => ({
+        ...prev,
+        blocks: data.data || [],
+        loading: false
+      }));
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch blocks'
+      }));
+    }
+  };
 
   useEffect(() => {
-    fetch(`http://localhost:3001/blocks?name=${search}`)
-      .then((res) => res.json())
-      .then((data) => setBlocks(data.data));
-  }, [search]);
+    const debounceTimeout = setTimeout(() => {
+      fetchBlocks();
+    }, 500);
+
+    return () => clearTimeout(debounceTimeout);
+  }, [state.search]);
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+    setState(prev => ({ ...prev, search: e.target.value }));
+  };
+
+  const handleViewBlock = (blockId: number) => {
+    // TODO: Implement block preview
+    console.log('View block:', blockId);
+  };
+
+  const handleDownloadBlock = (blockId: number) => {
+    // TODO: Implement block download
+    console.log('Download block:', blockId);
   };
 
   return (
-    <div>
-      <input
-        placeholder="Search by name..."
+    <Box sx={{ width: '100%' }}>
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search blocks by name..."
+        value={state.search}
         onChange={handleSearchChange}
-        value={search}
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: state.loading && (
+            <CircularProgress size={20} sx={{ mr: 1 }} />
+          )
+        }}
       />
-      <ul>
-        {blocks.map((block) => (
-          <li key={block.id}>
-            {block.name} ({block.x}, {block.y})
-          </li>
-        ))}
-      </ul>
-    </div>
+
+      {state.error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
+      )}
+
+      <Paper elevation={0} variant="outlined">
+        <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
+          {state.blocks.length === 0 ? (
+            <ListItem>
+              <ListItemText
+                primary={
+                  <Typography color="text.secondary">
+                    {state.loading ? 'Loading blocks...' : 'No blocks found'}
+                  </Typography>
+                }
+              />
+            </ListItem>
+          ) : (
+            state.blocks.map((block, index) => (
+              <React.Fragment key={block.id}>
+                {index > 0 && <Divider />}
+                <ListItem>
+                  <ListItemText
+                    primary={block.name}
+                    secondary={`Position: (${block.x}, ${block.y})`}
+                  />
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
+                      aria-label="view"
+                      onClick={() => handleViewBlock(block.id)}
+                      sx={{ mr: 1 }}
+                    >
+                      <Visibility />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="download"
+                      onClick={() => handleDownloadBlock(block.id)}
+                    >
+                      <Download />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              </React.Fragment>
+            ))
+          )}
+        </List>
+      </Paper>
+    </Box>
   );
 };
 
